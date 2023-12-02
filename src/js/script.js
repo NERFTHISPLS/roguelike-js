@@ -1,4 +1,7 @@
 class Model {
+  static _TYPE_ROOM = 'room';
+  static _TYPE_PASSAGE = 'passage';
+
   state = {
     map: {
       width: 40,
@@ -7,7 +10,7 @@ class Model {
       // { type: String, x: Number, y: Number }
       tiles: [],
       rooms: {
-        type: 'room',
+        type: Model._TYPE_ROOM,
         number: 0,
         minNumber: 5,
         maxNumber: 10,
@@ -18,10 +21,12 @@ class Model {
         // separate room:
         // [leftCornerX, leftCornerY, rightCornerX, rightCornerY]
         coords: [],
+        exitPassageSize: 0,
+        exitCoords: [],
       },
       // passages can be represented as slightly differrent rooms
       passages: {
-        type: 'passage',
+        type: Model._TYPE_PASSAGE,
         number: 0,
         minNumber: 3,
         maxNumber: 5,
@@ -42,32 +47,55 @@ class Model {
   }
 
   addRooms() {
+    this._initGroundTilesNumber(this.state.map.rooms);
     this._addGroundTiles(this.state.map.rooms);
   }
 
   addPassages() {
+    this._initGroundTilesNumber(this.state.map.passages);
+
+    this.state.map.passages.number -= this.state.map.rooms.number;
+
     this._addGroundTiles(this.state.map.passages);
   }
 
+  addExitsFromRooms() {
+    this._addGroundTiles(this.state.map.rooms);
+  }
+
   _addGroundTiles(mapPieceOfState) {
-    this._initGroundTilesNumber(mapPieceOfState);
     this._initGroundTiles(mapPieceOfState);
     this._replaceTiles('tile', mapPieceOfState.coords);
+
+    if (!mapPieceOfState.exitCoords) return;
+
+    this._replaceTiles('tile', mapPieceOfState.exitCoords);
   }
 
   // coords will be mutated
-  _initGroundTiles({ type, number, minSize, maxSize, size, coords }) {
+  _initGroundTiles({
+    type,
+    number,
+    minSize,
+    maxSize,
+    size,
+    exitPassageSize,
+    coords,
+    exitCoords,
+  }) {
     for (let i = 0; i < number; i++) {
-      const groundCoords =
-        type === 'room'
-          ? this._calcGroundCoordsForRoom(minSize, maxSize)
-          : type === 'passage'
-          ? this._calcGroundCoordsForPassages(size)
-          : [];
+      if (type === Model._TYPE_ROOM) {
+        const groundCoordsRooms = this._calcGroundCoordsForRoom(
+          minSize,
+          maxSize
+        );
+        coords.push(groundCoordsRooms);
 
-      if (type === 'room') {
-        coords.push(groundCoords);
-      } else if (type === 'passage') {
+        const groundCoordsExits =
+          this._calcGroundCoordsForPassages(exitPassageSize);
+        exitCoords.push(...groundCoordsExits);
+      } else if (type === Model._TYPE_PASSAGE) {
+        const groundCoords = this._calcGroundCoordsForPassages(size);
         coords.push(...groundCoords);
       }
     }
