@@ -22,7 +22,8 @@ class Model {
         number: 0,
         minMumber: 3,
         maxNumber: 5,
-        size: 1,
+        minSize: 1,
+        maxSize: 1,
         coords: [],
       },
     },
@@ -38,37 +39,26 @@ class Model {
     }
   }
 
-  addGroundTiles() {
-    this._addRoomsTiles();
-    this._addPassagesTiles();
+  addGroundTiles(mapPieceOfState) {
+    this._initGroundTilesNumber(mapPieceOfState);
+
+    this._initGroundTiles(mapPieceOfState);
+    this._replaceTiles('tile', mapPieceOfState.coords);
   }
 
-  _addPassagesTiles() {}
+  // coords will be mutaded
+  _initGroundTiles({ number, minSize, maxSize, coords }) {
+    for (let i = 0; i < number; i++) {
+      const groundCoords = this._calcGroundCoords(minSize, maxSize);
 
-  _addRoomsTiles() {
-    const { rooms } = this.state.map;
-
-    this._initGroundTilesNumber(rooms);
-
-    const { number, minSize, maxSize, coords } = rooms;
-
-    this._initGroundTiles(number, minSize, maxSize, coords);
-    this._replaceTiles('tile', coords);
-  }
-
-  // coordsArr will be mutaded
-  _initGroundTiles(groundTilesNumber, minSize, maxSize, coordsArr) {
-    for (let i = 0; i < groundTilesNumber; i++) {
-      const roomCoords = this._calcGroundCoords(minSize, maxSize);
-
-      coordsArr.push(roomCoords);
+      coords.push(groundCoords);
     }
   }
 
-  _initGroundTilesNumber(mapStatePart) {
-    mapStatePart.number = this._getRandomInt(
-      mapStatePart.minNumber,
-      mapStatePart.maxNumber
+  _initGroundTilesNumber(mapPieceOfState) {
+    mapPieceOfState.number = this._getRandomInt(
+      mapPieceOfState.minNumber,
+      mapPieceOfState.maxNumber
     );
   }
 
@@ -187,7 +177,7 @@ class Controller {
 
   _init() {
     this._model.initMapTiles();
-    this._model.addGroundTiles();
+    this._model.addGroundTiles(this._state.map.rooms);
     this._mapView.addHandlerRender(this._controlMap.bind(this));
   }
 
