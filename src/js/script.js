@@ -30,30 +30,22 @@ class Model {
     }
   }
 
-  addRoomsOnMapTiles() {
-    const { tiles } = this.state.map;
-    const { roomsCoords } = this.state.map.rooms;
-
-    this._initRooms();
-
-    for (const [leftX, leftY, rightX, rightY] of roomsCoords) {
-      for (let j = leftY; j <= rightY; j++) {
-        for (let i = leftX; i <= rightX; i++) {
-          const tile = tiles.find(tile => tile.x === i && tile.y === j);
-          tile.type = 'tile';
-        }
-      }
-    }
-  }
-
-  _initRooms() {
+  addGroundTiles() {
     this._initRoomsNumber();
 
-    const { roomsNumber, roomsCoords } = this.state.map.rooms;
-    for (let i = 0; i < roomsNumber; i++) {
-      const roomCoords = this._calcRoomCoords();
+    const { roomsNumber, minRoomSize, maxRoomSize, roomsCoords } =
+      this.state.map.rooms;
 
-      roomsCoords.push(roomCoords);
+    this._initGroundTiles(roomsNumber, minRoomSize, maxRoomSize, roomsCoords);
+    this._replaceTiles('tile', roomsCoords);
+  }
+
+  // coordsArr will be mutaded
+  _initGroundTiles(groundTilesNumber, minSize, maxSize, coordsArr) {
+    for (let i = 0; i < groundTilesNumber; i++) {
+      const roomCoords = this._calcGroundCoords(minSize, maxSize);
+
+      coordsArr.push(roomCoords);
     }
   }
 
@@ -66,21 +58,20 @@ class Model {
     );
   }
 
-  _calcRoomCoords() {
+  _calcGroundCoords(minSize, maxSize) {
     const { width, height } = this.state.map;
-    const { minRoomSize, maxRoomSize } = this.state.map.rooms;
 
-    const roomWidth = this._getRandomInt(minRoomSize, maxRoomSize);
-    const roomHeight = this._getRandomInt(minRoomSize, maxRoomSize);
+    const roomWidth = this._getRandomInt(minSize, maxSize);
+    const roomHeight = this._getRandomInt(minSize, maxSize);
 
     const leftCoordX = this._getRandomInt(0, width - 1);
     const leftCoordY = this._getRandomInt(0, height - 1);
 
-    const rightCoordX = this._adjustRoomRightCornerCoord(
+    const rightCoordX = this._adjustGroundRightCornerCoord(
       leftCoordX + roomWidth,
       width
     );
-    const rightCoordY = this._adjustRoomRightCornerCoord(
+    const rightCoordY = this._adjustGroundRightCornerCoord(
       leftCoordY + roomHeight,
       height
     );
@@ -88,12 +79,25 @@ class Model {
     return [leftCoordX, leftCoordY, rightCoordX, rightCoordY];
   }
 
-  _adjustRoomRightCornerCoord(rightCornerCoord, mapSize) {
+  _adjustGroundRightCornerCoord(rightCornerCoord, mapSize) {
     return rightCornerCoord >= mapSize ? mapSize - 1 : rightCornerCoord;
   }
 
   _getRandomInt(min, max) {
     return Math.floor(min + Math.random() * (max + 1 - min));
+  }
+
+  _replaceTiles(type, coords) {
+    const { tiles } = this.state.map;
+
+    for (const [leftX, leftY, rightX, rightY] of coords) {
+      for (let j = leftY; j <= rightY; j++) {
+        for (let i = leftX; i <= rightX; i++) {
+          const tile = tiles.find(tile => tile.x === i && tile.y === j);
+          tile.type = type;
+        }
+      }
+    }
   }
 }
 
@@ -163,7 +167,7 @@ class Controller {
 
   _init() {
     this._model.initMapTiles();
-    this._model.addRoomsOnMapTiles();
+    this._model.addGroundTiles();
     this._mapView.addHandlerRender(this._controlMap.bind(this));
   }
 
