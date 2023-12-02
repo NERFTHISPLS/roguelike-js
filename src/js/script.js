@@ -7,9 +7,11 @@ class Model {
       // { type: String, x: Number, y: Number }
       tiles: [],
       rooms: {
+        type: 'room',
         number: 0,
         minNumber: 5,
         maxNumber: 10,
+        // sizes are 0 based (if size is 0 then the size of room equals 1 tile)
         minSize: 3,
         maxSize: 8,
         // roomsCoords will be represented as an array of arrays of coordinate of a
@@ -19,11 +21,11 @@ class Model {
       },
       // passages can be represented as slightly differrent rooms
       passages: {
+        type: 'passage',
         number: 0,
-        minMumber: 3,
+        minNumber: 3,
         maxNumber: 5,
-        minSize: 1,
-        maxSize: 1,
+        size: 0,
         coords: [],
       },
     },
@@ -39,19 +41,35 @@ class Model {
     }
   }
 
-  addGroundTiles(mapPieceOfState) {
-    this._initGroundTilesNumber(mapPieceOfState);
+  addRooms() {
+    this._addGroundTiles(this.state.map.rooms);
+  }
 
+  addPassages() {
+    this._addGroundTiles(this.state.map.passages);
+  }
+
+  _addGroundTiles(mapPieceOfState) {
+    this._initGroundTilesNumber(mapPieceOfState);
     this._initGroundTiles(mapPieceOfState);
     this._replaceTiles('tile', mapPieceOfState.coords);
   }
 
-  // coords will be mutaded
-  _initGroundTiles({ number, minSize, maxSize, coords }) {
+  // coords will be mutated
+  _initGroundTiles({ type, number, minSize, maxSize, size, coords }) {
     for (let i = 0; i < number; i++) {
-      const groundCoords = this._calcGroundCoords(minSize, maxSize);
+      const groundCoords =
+        type === 'room'
+          ? this._calcGroundCoordsForRoom(minSize, maxSize)
+          : type === 'passage'
+          ? this._calcGroundCoordsForPassages(size)
+          : [];
 
-      coords.push(groundCoords);
+      if (type === 'room') {
+        coords.push(groundCoords);
+      } else if (type === 'passage') {
+        coords.push(...groundCoords);
+      }
     }
   }
 
@@ -62,13 +80,7 @@ class Model {
     );
   }
 
-  _initPassagesNumber() {
-    const { passages } = this.state.map;
-
-    passages.passagesNumber = this._getRandomInt();
-  }
-
-  _calcGroundCoords(minSize, maxSize) {
+  _calcGroundCoordsForRoom(minSize, maxSize) {
     const { width, height } = this.state.map;
 
     const roomWidth = this._getRandomInt(minSize, maxSize);
@@ -85,6 +97,43 @@ class Model {
       leftCoordY + roomHeight,
       height
     );
+
+    return [leftCoordX, leftCoordY, rightCoordX, rightCoordY];
+  }
+
+  _calcGroundCoordsForPassages(size) {
+    const coordsX = this._calcGroundCoordsForPassageX(size);
+    const coordsY = this._calcGroundCoordsForPassageY(size);
+
+    return [coordsX, coordsY];
+  }
+
+  _calcGroundCoordsForPassageX(size) {
+    const { width, height } = this.state.map;
+
+    const leftCoordX = 0;
+    const leftCoordY = this._getRandomInt(0, height - 1);
+
+    const rightCoordX = width - 1;
+    const rightCoordY = this._adjustGroundRightCornerCoord(
+      leftCoordY + size,
+      height
+    );
+
+    return [leftCoordX, leftCoordY, rightCoordX, rightCoordY];
+  }
+
+  _calcGroundCoordsForPassageY(size) {
+    const { width, height } = this.state.map;
+
+    const leftCoordX = this._getRandomInt(0, width - 1);
+    const leftCoordY = 0;
+
+    const rightCoordX = this._adjustGroundRightCornerCoord(
+      leftCoordX + size,
+      width
+    );
+    const rightCoordY = height - 1;
 
     return [leftCoordX, leftCoordY, rightCoordX, rightCoordY];
   }
@@ -177,7 +226,8 @@ class Controller {
 
   _init() {
     this._model.initMapTiles();
-    this._model.addGroundTiles(this._state.map.rooms);
+    this._model.addRooms();
+    this._model.addPassages();
     this._mapView.addHandlerRender(this._controlMap.bind(this));
   }
 
