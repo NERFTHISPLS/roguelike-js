@@ -7,15 +7,23 @@ class Model {
       // { type: String, x: Number, y: Number }
       tiles: [],
       rooms: {
-        roomsNumber: 0,
-        minRoomsNumber: 5,
-        maxRoomsNumber: 10,
-        minRoomSize: 3,
-        maxRoomSize: 8,
+        number: 0,
+        minNumber: 5,
+        maxNumber: 10,
+        minSize: 3,
+        maxSize: 8,
         // roomsCoords will be represented as an array of arrays of coordinate of a
         // separate room:
         // [leftCornerX, leftCornerY, rightCornerX, rightCornerY]
-        roomsCoords: [],
+        coords: [],
+      },
+      // passages can be represented as slightly differrent rooms
+      passages: {
+        number: 0,
+        minMumber: 3,
+        maxNumber: 5,
+        size: 1,
+        coords: [],
       },
     },
   };
@@ -31,13 +39,21 @@ class Model {
   }
 
   addGroundTiles() {
-    this._initRoomsNumber();
+    this._addRoomsTiles();
+    this._addPassagesTiles();
+  }
 
-    const { roomsNumber, minRoomSize, maxRoomSize, roomsCoords } =
-      this.state.map.rooms;
+  _addPassagesTiles() {}
 
-    this._initGroundTiles(roomsNumber, minRoomSize, maxRoomSize, roomsCoords);
-    this._replaceTiles('tile', roomsCoords);
+  _addRoomsTiles() {
+    const { rooms } = this.state.map;
+
+    this._initGroundTilesNumber(rooms);
+
+    const { number, minSize, maxSize, coords } = rooms;
+
+    this._initGroundTiles(number, minSize, maxSize, coords);
+    this._replaceTiles('tile', coords);
   }
 
   // coordsArr will be mutaded
@@ -49,13 +65,17 @@ class Model {
     }
   }
 
-  _initRoomsNumber() {
-    const { rooms } = this.state.map;
-
-    rooms.roomsNumber = this._getRandomInt(
-      rooms.minRoomsNumber,
-      rooms.maxRoomsNumber
+  _initGroundTilesNumber(mapStatePart) {
+    mapStatePart.number = this._getRandomInt(
+      mapStatePart.minNumber,
+      mapStatePart.maxNumber
     );
+  }
+
+  _initPassagesNumber() {
+    const { passages } = this.state.map;
+
+    passages.passagesNumber = this._getRandomInt();
   }
 
   _calcGroundCoords(minSize, maxSize) {
