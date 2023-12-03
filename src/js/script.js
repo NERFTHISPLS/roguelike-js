@@ -20,7 +20,7 @@ class Model {
         // (if minSize === 0 then it means that their size is actually 1)
         minSize: 2,
         maxSize: 7,
-        roomsCoords: [],
+        coords: [],
         passagesSize: 0,
       },
       items: {
@@ -31,11 +31,19 @@ class Model {
           number: 10,
         },
       },
-      player: {
-        hp: 100,
-        attackPower: 30,
-        x: 0,
-        y: 0,
+      units: {
+        player: {
+          hp: 100,
+          attackPower: 30,
+          x: 0,
+          y: 0,
+        },
+        enemies: {
+          number: 10,
+          // will be represented as an array of objects:
+          // { hp: 100, attackPower: 10, x: Number, y: Number }
+          enemiesParameters: [],
+        },
       },
     },
   };
@@ -60,7 +68,7 @@ class Model {
   }
 
   addPassages() {
-    const { roomsCoords } = this.state.map.rooms;
+    const { coords: roomsCoords } = this.state.map.rooms;
 
     for (const roomCoords of roomsCoords) {
       this._addPassageX(roomCoords);
@@ -76,17 +84,16 @@ class Model {
   }
 
   addUnits() {
-    this._addPlayer();
-    this._addEnemies();
-  }
-
-  _addPlayer() {
-    const { player } = this.state.map;
-
     const groundTiles = this._getGroundTiles();
     const randomGroundTile = this._getRandomTile(groundTiles);
 
-    const { x, y } = randomGroundTile;
+    this._addPlayer(randomGroundTile);
+    this._addEnemies(groundTiles);
+  }
+
+  _addPlayer(groundTile) {
+    const { player } = this.state.map.units;
+    const { x, y } = groundTile;
 
     this._replaceTiles(this._TILE_TYPE_PLAYER, [x, y, x, y]);
 
@@ -94,7 +101,30 @@ class Model {
     player.y = y;
   }
 
-  _addEnemies() {}
+  _addEnemies(groundTiles) {
+    const { enemies } = this.state.map.units;
+
+    for (let i = 0; i < enemies.number; i++) {
+      const randomGroundTile = this._getRandomTile(groundTiles);
+      this._addEnemy(randomGroundTile);
+    }
+  }
+
+  _addEnemy(groundTile) {
+    const { enemiesParameters } = this.state.map.units.enemies;
+    const { x, y } = groundTile;
+
+    this._replaceTiles(this._TILE_TYPE_ENEMY, [x, y, x, y]);
+
+    const enemy = {
+      hp: 100,
+      attackPower: 10,
+      x,
+      y,
+    };
+
+    enemiesParameters.push(enemy);
+  }
 
   _addSwords(groundTiles) {
     const { swords } = this.state.map.items;
@@ -146,7 +176,7 @@ class Model {
   }
 
   _addRoom() {
-    const { roomsCoords } = this.state.map.rooms;
+    const { coords: roomsCoords } = this.state.map.rooms;
 
     const roomCoords = this._calcRoomCoords();
 
