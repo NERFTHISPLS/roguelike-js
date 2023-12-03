@@ -15,6 +15,8 @@ const DIRECTIONS_TO_MOVE = ['w', 'a', 's', 'd'];
 
 class Model {
   state = {
+    isGameOn: true,
+    isGameOver: false,
     map: {
       width: 40,
       height: 24,
@@ -108,15 +110,77 @@ class Model {
     const { player } = this.state.map.units;
 
     this._moveUnit(player, direction);
-    this._moveEnemies();
+    this._moveEnemiesOrAttackPlayer();
   }
 
-  _moveEnemies() {
+  attackEnemies() {
+    const { player, enemies } = this.state.map.units;
+
+    for (const enemy of enemies.enemiesParameters) {
+      if (!this._areUnitsAdjacent(player, enemy)) {
+        const randomDirection = this._getRandomDirection();
+        this._moveUnit(enemy, randomDirection);
+        continue;
+      }
+
+      enemy.hp -= player.attackPower;
+
+      this._attackPlayer(enemy);
+
+      if (enemy.hp > 0) continue;
+      this._handleDefeatEnemy(enemy);
+
+      if (enemies.enemiesParameters.length !== 0) continue;
+      this._handleWin();
+    }
+  }
+
+  _handleWin() {
+    this.state.isGameOn = false;
+    this.state.isGameOver = false;
+  }
+
+  _handleLose() {
+    this.state.isGameOn = false;
+    this.state.isGameOver = true;
+  }
+
+  _attackPlayer(enemy) {
+    const { player } = this.state.map.units;
+
+    player.hp -= enemy.attackPower;
+
+    if (player.hp > 0) return;
+
+    this._handleLose();
+  }
+
+  _handleDefeatEnemy(enemy) {
     const { enemies } = this.state.map.units;
 
+    const enemyIndex = enemies.enemiesParameters.indexOf(enemy);
+
+    this._replaceTiles(TILE_TYPE_GROUND, [enemy.x, enemy.y, enemy.x, enemy.y]);
+    enemies.enemiesParameters.splice(enemyIndex, 1);
+  }
+
+  _areUnitsAdjacent(firstUnit, secondUnit) {
+    return (
+      Math.abs(firstUnit.x - secondUnit.x) <= 1 &&
+      Math.abs(firstUnit.y - secondUnit.y) <= 1
+    );
+  }
+
+  _moveEnemiesOrAttackPlayer() {
+    const { player, enemies } = this.state.map.units;
+
     enemies.enemiesParameters.forEach(enemy => {
-      const randomDirection = this._getRandomDirection();
-      this._moveUnit(enemy, randomDirection);
+      if (this._areUnitsAdjacent(player, enemy)) {
+        this._attackPlayer(enemy);
+      } else {
+        const randomDirection = this._getRandomDirection();
+        this._moveUnit(enemy, randomDirection);
+      }
     });
   }
 
@@ -135,8 +199,6 @@ class Model {
         break;
       case 'd':
         this._moveUnitTo(unit, x + 1, y);
-        break;
-      default:
         break;
     }
   }
@@ -367,7 +429,17 @@ class MapView extends View {
   }
 
   addHandlerMovePlayer(handler) {
-    document.addEventListener('keydown', event => handler(event));
+    document.addEventListener(
+      'keydown',
+      event => DIRECTIONS_TO_MOVE.includes(event.key) && handler(event.key)
+    );
+  }
+
+  addHandlerAttackEnemies(handler) {
+    document.addEventListener(
+      'keydown',
+      event => event.key === ' ' && handler()
+    );
   }
 
   _generateMarkup() {
@@ -432,9 +504,29 @@ class MapView extends View {
   }
 }
 
+class GameEndView extends View {
+  _parentElement = document.querySelector('.game-end-popup');
+
+  _generateMarkup() {
+    const { isGameOver } = this._data;
+
+    this._parentElement.classList.remove('hidden');
+
+    const markup = /* html */ `
+      <div class="game-end-popup">
+        <h2>${isGameOver ? 'Вы проиграли!' : 'Вы победили!'}</h2>
+        <button onclick="window.location.reload()">Начать сначала?</button>
+      </div>
+    `;
+
+    return markup;
+  }
+}
+
 class Controller {
   _model = new Model();
   _mapView = new MapView();
+  _gameEndView = new GameEndView();
 
   _state = this._model.state;
 
@@ -450,15 +542,25 @@ class Controller {
     this._model.addUnits();
     this._mapView.addHandlerRender(this._controlMap.bind(this));
     this._mapView.addHandlerMovePlayer(this._controlMovePlayer.bind(this));
+    this._mapView.addHandlerAttackEnemies(
+      this._controlAttackEnemies.bind(this)
+    );
   }
 
   _controlMap() {
     this._mapView.render(this._state.map);
   }
 
-  _controlMovePlayer(event) {
-    this._model.movePlayer(event.key);
+  _controlMovePlayer(direction) {
+    this._model.movePlayer(direction);
     this._mapView.update(this._state.map);
+    !this._state.isGameOn && this._gameEndView.render(this._state);
+  }
+
+  _controlAttackEnemies() {
+    this._model.attackEnemies();
+    this._mapView.update(this._state.map);
+    !this._state.isGameOn && this._gameEndView.render(this._state);
   }
 }
 
