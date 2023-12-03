@@ -69,15 +69,26 @@ class Model {
     );
 
     this._addSwords(groundTiles);
+    this._addHealingPotions(groundTiles);
   }
 
   _addSwords(groundTiles) {
     const { swords } = this.state.map.items;
 
-    for (let i = 0; i < swords.number; i++) {
+    this._addItem(this._TILE_TYPE_SWORD, swords.number, groundTiles);
+  }
+
+  _addHealingPotions(groundTiles) {
+    const { healingPotions } = this.state.map.items;
+
+    this._addItem(this._TILE_TYPE_HP, healingPotions.number, groundTiles);
+  }
+
+  _addItem(type, itemNumber, groundTiles) {
+    for (let i = 0; i < itemNumber; i++) {
       const randomGroundTile = this._getRandomTile(groundTiles);
 
-      this._replaceTiles(this._TILE_TYPE_SWORD, [
+      this._replaceTiles(type, [
         randomGroundTile.x,
         randomGroundTile.y,
         randomGroundTile.x,
