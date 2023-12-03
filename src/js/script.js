@@ -23,6 +23,14 @@ class Model {
         roomsCoords: [],
         passagesSize: 0,
       },
+      items: {
+        swords: {
+          number: 2,
+        },
+        healingPotions: {
+          number: 10,
+        },
+      },
     },
   };
 
@@ -51,6 +59,41 @@ class Model {
     for (const roomCoords of roomsCoords) {
       this._addPassageX(roomCoords);
       this._addPassageY(roomCoords);
+    }
+  }
+
+  addItems() {
+    const { tiles } = this.state.map;
+    const groundTiles = tiles.filter(
+      tile => tile.type === this._TILE_TYPE_GROUND
+    );
+
+    this._addSwords(groundTiles);
+    this._addHealingPotions(groundTiles);
+  }
+
+  _addSwords(groundTiles) {
+    const { swords } = this.state.map.items;
+
+    this._addItem(this._TILE_TYPE_SWORD, swords.number, groundTiles);
+  }
+
+  _addHealingPotions(groundTiles) {
+    const { healingPotions } = this.state.map.items;
+
+    this._addItem(this._TILE_TYPE_HP, healingPotions.number, groundTiles);
+  }
+
+  _addItem(type, itemNumber, groundTiles) {
+    for (let i = 0; i < itemNumber; i++) {
+      const randomGroundTile = this._getRandomTile(groundTiles);
+
+      this._replaceTiles(type, [
+        randomGroundTile.x,
+        randomGroundTile.y,
+        randomGroundTile.x,
+        randomGroundTile.y,
+      ]);
     }
   }
 
@@ -110,6 +153,12 @@ class Model {
 
   _getRandomInt(min, max) {
     return Math.floor(min + Math.random() * (max + 1 - min));
+  }
+
+  _getRandomTile(tiles) {
+    const randomTile = tiles[this._getRandomInt(0, tiles.length - 1)];
+
+    return randomTile;
   }
 
   _replaceTiles(type, coords) {
@@ -193,6 +242,7 @@ class Controller {
     this._model.initMapTiles();
     this._model.addRooms();
     this._model.addPassages();
+    this._model.addItems();
     this._mapView.addHandlerRender(this._controlMap.bind(this));
   }
 
