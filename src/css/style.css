@@ -79,21 +79,15 @@ h1 {
   z-index: 9;
 }
 
-.field .tile .health {
+.field .tile-e .health {
   background-color: #ff0000;
   z-index: 11;
-  position: absolute;
-  left: 0px;
-  top: 0px;
   height: 3px;
 }
 
 .field .tile-p .health {
   background-color: #00ff00;
   z-index: 11;
-  position: absolute;
-  left: 0px;
-  top: 0px;
   height: 3px;
 }
 

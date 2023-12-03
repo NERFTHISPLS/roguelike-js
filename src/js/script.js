@@ -1,11 +1,17 @@
-class Model {
-  _TILE_TYPE_ENEMY = 'tile-e';
-  _TILE_TYPE_HP = 'tile-hp';
-  _TILE_TYPE_PLAYER = 'tile-p';
-  _TILE_TYPE_SWORD = 'tile-sw';
-  _TILE_TYPE_WALL = 'tile-w';
-  _TILE_TYPE_GROUND = 'tile';
+const TILE_TYPE_ENEMY = 'tile-e';
+const TILE_TYPE_HP = 'tile-hp';
+const TILE_TYPE_PLAYER = 'tile-p';
+const TILE_TYPE_SWORD = 'tile-sw';
+const TILE_TYPE_WALL = 'tile-w';
+const TILE_TYPE_GROUND = 'tile';
 
+const PLAYER_MAX_HP = 100;
+const ENEMIES_MAX_HP = 100;
+
+const PLAYER_INITIAL_ATTACK_POWER = 30;
+const ENEMIES_INITIAL_ATTACK_POWER = 10;
+
+class Model {
   state = {
     map: {
       width: 40,
@@ -33,15 +39,20 @@ class Model {
       },
       units: {
         player: {
-          hp: 100,
-          attackPower: 30,
+          hp: PLAYER_MAX_HP,
+          attackPower: PLAYER_INITIAL_ATTACK_POWER,
           x: 0,
           y: 0,
         },
         enemies: {
           number: 10,
           // will be represented as an array of objects:
-          // { hp: 100, attackPower: 10, x: Number, y: Number }
+          // {
+          //  hp: ENEMIES_MAX_HP,
+          //  attackPower: ENEMIES_INITIAL_ATTACK_POWER,
+          //  x: Number,
+          //  y: Number
+          // }
           enemiesParameters: [],
         },
       },
@@ -53,7 +64,7 @@ class Model {
 
     for (let j = 0; j < map.height; j++) {
       for (let i = 0; i < map.width; i++) {
-        map.tiles.push({ type: this._TILE_TYPE_WALL, x: i, y: j });
+        map.tiles.push({ type: TILE_TYPE_WALL, x: i, y: j });
       }
     }
   }
@@ -95,7 +106,7 @@ class Model {
     const { player } = this.state.map.units;
     const { x, y } = groundTile;
 
-    this._replaceTiles(this._TILE_TYPE_PLAYER, [x, y, x, y]);
+    this._replaceTiles(TILE_TYPE_PLAYER, [x, y, x, y]);
 
     player.x = x;
     player.y = y;
@@ -114,11 +125,11 @@ class Model {
     const { enemiesParameters } = this.state.map.units.enemies;
     const { x, y } = groundTile;
 
-    this._replaceTiles(this._TILE_TYPE_ENEMY, [x, y, x, y]);
+    this._replaceTiles(TILE_TYPE_ENEMY, [x, y, x, y]);
 
     const enemy = {
-      hp: 100,
-      attackPower: 10,
+      hp: ENEMIES_MAX_HP,
+      attackPower: ENEMIES_INITIAL_ATTACK_POWER,
       x,
       y,
     };
@@ -129,13 +140,13 @@ class Model {
   _addSwords(groundTiles) {
     const { swords } = this.state.map.items;
 
-    this._addItem(this._TILE_TYPE_SWORD, swords.number, groundTiles);
+    this._addItem(TILE_TYPE_SWORD, swords.number, groundTiles);
   }
 
   _addHealingPotions(groundTiles) {
     const { healingPotions } = this.state.map.items;
 
-    this._addItem(this._TILE_TYPE_HP, healingPotions.number, groundTiles);
+    this._addItem(TILE_TYPE_HP, healingPotions.number, groundTiles);
   }
 
   _addItem(type, itemNumber, groundTiles) {
@@ -160,7 +171,7 @@ class Model {
 
     const passageCoords = [leftX, y, width - 1, y];
 
-    this._replaceTiles(this._TILE_TYPE_GROUND, passageCoords);
+    this._replaceTiles(TILE_TYPE_GROUND, passageCoords);
   }
 
   _addPassageY(roomCoords) {
@@ -172,7 +183,7 @@ class Model {
 
     const passageCoords = [x, leftY, x, height - 1];
 
-    this._replaceTiles(this._TILE_TYPE_GROUND, passageCoords);
+    this._replaceTiles(TILE_TYPE_GROUND, passageCoords);
   }
 
   _addRoom() {
@@ -182,7 +193,7 @@ class Model {
 
     roomsCoords.push(roomCoords);
 
-    this._replaceTiles(this._TILE_TYPE_GROUND, roomCoords);
+    this._replaceTiles(TILE_TYPE_GROUND, roomCoords);
   }
 
   _calcRoomCoords() {
@@ -218,9 +229,7 @@ class Model {
   _getGroundTiles() {
     const { tiles } = this.state.map;
 
-    const groundTiles = tiles.filter(
-      tile => tile.type === this._TILE_TYPE_GROUND
-    );
+    const groundTiles = tiles.filter(tile => tile.type === TILE_TYPE_GROUND);
 
     return groundTiles;
   }
@@ -278,12 +287,47 @@ class MapView extends View {
     const markup = tiles
       .map(
         tile => /* html */ `
-          <div class=${tile.type} data-x="${tile.x}" data-y="${tile.y}"></div>
+          <div class=${tile.type} data-x="${tile.x}" data-y="${tile.y}">
+            ${this._generateHealthBarMarkup(tile)}
+          </div>
         `
       )
       .join('\n');
 
     return markup;
+  }
+
+  _generateHealthBarMarkup(tile) {
+    if (tile.type !== TILE_TYPE_PLAYER && tile.type !== TILE_TYPE_ENEMY)
+      return '';
+
+    const unit = this._getUnitStateFromTile(tile);
+
+    const unitMaxHp =
+      tile.type === TILE_TYPE_PLAYER ? PLAYER_MAX_HP : ENEMIES_MAX_HP;
+
+    const healthPercentage = (unit.hp / unitMaxHp) * 100;
+
+    return /* html */ `
+      <div class="health" style="width: ${healthPercentage}%"></div>
+    `;
+  }
+
+  _getUnitStateFromTile(tile) {
+    const { units } = this._data;
+
+    if (tile.type === TILE_TYPE_PLAYER) {
+      return units.player;
+    } else if (tile.type === TILE_TYPE_ENEMY) {
+      const enemy = units.enemies.enemiesParameters.find(
+        enemyParameters =>
+          enemyParameters.x === tile.x && enemyParameters.y === tile.y
+      );
+
+      return enemy;
+    }
+
+    return null;
   }
 
   _addStyleToParent({ gridTemplateColumns, gridTemplateRows }) {
