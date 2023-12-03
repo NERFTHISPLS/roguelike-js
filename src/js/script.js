@@ -111,6 +111,39 @@ class Model {
     this._moveEnemies();
   }
 
+  attackEnemies() {
+    const { player, enemies } = this.state.map.units;
+
+    for (const enemy of enemies.enemiesParameters) {
+      if (!this._areUnitsAdjacent(player, enemy)) {
+        const randomDirection = this._getRandomDirection();
+        this._moveUnit(enemy, randomDirection);
+        continue;
+      }
+
+      enemy.hp -= player.attackPower;
+      if (enemy.hp > 0) continue;
+
+      this._handleDefeatEnemy(enemy);
+    }
+  }
+
+  _handleDefeatEnemy(enemy) {
+    const { enemies } = this.state.map.units;
+
+    const enemyIndex = enemies.enemiesParameters.indexOf(enemy);
+
+    this._replaceTiles(TILE_TYPE_GROUND, [enemy.x, enemy.y, enemy.x, enemy.y]);
+    enemies.enemiesParameters.splice(enemyIndex, 1);
+  }
+
+  _areUnitsAdjacent(firstUnit, secondUnit) {
+    return (
+      Math.abs(firstUnit.x - secondUnit.x) <= 1 &&
+      Math.abs(firstUnit.y - secondUnit.y) <= 1
+    );
+  }
+
   _moveEnemies() {
     const { enemies } = this.state.map.units;
 
@@ -135,8 +168,6 @@ class Model {
         break;
       case 'd':
         this._moveUnitTo(unit, x + 1, y);
-        break;
-      default:
         break;
     }
   }
@@ -367,7 +398,17 @@ class MapView extends View {
   }
 
   addHandlerMovePlayer(handler) {
-    document.addEventListener('keydown', event => handler(event));
+    document.addEventListener(
+      'keydown',
+      event => DIRECTIONS_TO_MOVE.includes(event.key) && handler(event.key)
+    );
+  }
+
+  addHandlerAttackEnemies(handler) {
+    document.addEventListener(
+      'keydown',
+      event => event.key === ' ' && handler()
+    );
   }
 
   _generateMarkup() {
@@ -450,14 +491,22 @@ class Controller {
     this._model.addUnits();
     this._mapView.addHandlerRender(this._controlMap.bind(this));
     this._mapView.addHandlerMovePlayer(this._controlMovePlayer.bind(this));
+    this._mapView.addHandlerAttackEnemies(
+      this._controlAttackEnemies.bind(this)
+    );
   }
 
   _controlMap() {
     this._mapView.render(this._state.map);
   }
 
-  _controlMovePlayer(event) {
-    this._model.movePlayer(event.key);
+  _controlMovePlayer(direction) {
+    this._model.movePlayer(direction);
+    this._mapView.update(this._state.map);
+  }
+
+  _controlAttackEnemies() {
+    this._model.attackEnemies();
     this._mapView.update(this._state.map);
   }
 }
