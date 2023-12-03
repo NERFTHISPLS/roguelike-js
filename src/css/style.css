@@ -7,11 +7,6 @@
   box-sizing: border-box;
 }
 
-body,
-html {
-  height: 100%;
-}
-
 body {
   background-color: #000000;
   color: #ffffff;
@@ -95,20 +90,9 @@ h1,
   height: 3px;
 }
 
-.inventory-box {
-  border: 2px solid #d0d0d0;
-  float: left;
-}
-
-.inventory {
-  position: relative;
+.information-box {
   width: 800px;
   height: 32px;
-}
-
-.cl {
-  clear: both;
-  display: block;
 }
 
 .game-end-popup {
