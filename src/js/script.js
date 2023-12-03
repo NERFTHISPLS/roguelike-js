@@ -1,6 +1,10 @@
 class Model {
-  static _TYPE_ROOM = 'room';
-  static _TYPE_PASSAGE = 'passage';
+  _TILE_TYPE_ENEMY = 'tile-e';
+  _TILE_TYPE_HP = 'tile-hp';
+  _TILE_TYPE_PLAYER = 'tile-p';
+  _TILE_TYPE_SWORD = 'tile-sw';
+  _TILE_TYPE_WALL = 'tile-w';
+  _TILE_TYPE_GROUND = 'tile';
 
   state = {
     map: {
@@ -10,28 +14,14 @@ class Model {
       // { type: String, x: Number, y: Number }
       tiles: [],
       rooms: {
-        type: Model._TYPE_ROOM,
-        number: 0,
         minNumber: 5,
         maxNumber: 10,
-        // sizes are 0 based (if size is 0 then the size of room equals 1 tile)
-        minSize: 3,
-        maxSize: 8,
-        // roomsCoords will be represented as an array of arrays of coordinate of a
-        // separate room:
-        // [leftCornerX, leftCornerY, rightCornerX, rightCornerY]
-        coords: [],
-        exitPassageSize: 0,
-        exitCoords: [],
-      },
-      // passages can be represented as slightly differrent rooms
-      passages: {
-        type: Model._TYPE_PASSAGE,
-        number: 0,
-        minNumber: 3,
-        maxNumber: 5,
-        size: 0,
-        coords: [],
+        // all sizes are 0 based
+        // (if minSize === 0 then it means that their size is actually 1)
+        minSize: 2,
+        maxSize: 7,
+        roomsCoords: [],
+        passagesSize: 0,
       },
     },
   };
@@ -41,133 +31,81 @@ class Model {
 
     for (let j = 0; j < map.height; j++) {
       for (let i = 0; i < map.width; i++) {
-        map.tiles.push({ type: 'tile-w', x: i, y: j });
+        map.tiles.push({ type: this._TILE_TYPE_WALL, x: i, y: j });
       }
     }
   }
 
   addRooms() {
-    this._initGroundTilesNumber(this.state.map.rooms);
-    this._addGroundTiles(this.state.map.rooms);
-  }
+    const { minNumber, maxNumber } = this.state.map.rooms;
+    const roomsNumber = this._getRandomInt(minNumber, maxNumber);
 
-  addPassages() {
-    this._initGroundTilesNumber(this.state.map.passages);
-
-    this.state.map.passages.number -= this.state.map.rooms.number;
-
-    this._addGroundTiles(this.state.map.passages);
-  }
-
-  addExitsFromRooms() {
-    this._addGroundTiles(this.state.map.rooms);
-  }
-
-  _addGroundTiles(mapPieceOfState) {
-    this._initGroundTiles(mapPieceOfState);
-    this._replaceTiles('tile', mapPieceOfState.coords);
-
-    if (!mapPieceOfState.exitCoords) return;
-
-    this._replaceTiles('tile', mapPieceOfState.exitCoords);
-  }
-
-  // coords will be mutated
-  _initGroundTiles({
-    type,
-    number,
-    minSize,
-    maxSize,
-    size,
-    exitPassageSize,
-    coords,
-    exitCoords,
-  }) {
-    for (let i = 0; i < number; i++) {
-      if (type === Model._TYPE_ROOM) {
-        const groundCoordsRooms = this._calcGroundCoordsForRoom(
-          minSize,
-          maxSize
-        );
-        coords.push(groundCoordsRooms);
-
-        const groundCoordsExits =
-          this._calcGroundCoordsForPassages(exitPassageSize);
-        exitCoords.push(...groundCoordsExits);
-      } else if (type === Model._TYPE_PASSAGE) {
-        const groundCoords = this._calcGroundCoordsForPassages(size);
-        coords.push(...groundCoords);
-      }
+    for (let i = 0; i < roomsNumber; i++) {
+      this._addRoom();
     }
   }
 
-  _initGroundTilesNumber(mapPieceOfState) {
-    mapPieceOfState.number = this._getRandomInt(
-      mapPieceOfState.minNumber,
-      mapPieceOfState.maxNumber
-    );
+  addPassages() {
+    const { roomsCoords } = this.state.map.rooms;
+
+    for (const roomCoords of roomsCoords) {
+      this._addPassageX(roomCoords);
+      this._addPassageY(roomCoords);
+    }
   }
 
-  _calcGroundCoordsForRoom(minSize, maxSize) {
+  _addPassageX(roomCoords) {
+    const { width } = this.state.map;
+    const [, roomLeftCoordY, , roomRightCoordY] = roomCoords;
+
+    const leftX = 0;
+    const y = this._getRandomInt(roomLeftCoordY, roomRightCoordY);
+
+    const passageCoords = [leftX, y, width - 1, y];
+
+    this._replaceTiles(this._TILE_TYPE_GROUND, passageCoords);
+  }
+
+  _addPassageY(roomCoords) {
+    const { height } = this.state.map;
+    const [roomLeftCoordX, , roomRightCoordX] = roomCoords;
+
+    const leftY = 0;
+    const x = this._getRandomInt(roomLeftCoordX, roomRightCoordX);
+
+    const passageCoords = [x, leftY, x, height - 1];
+
+    this._replaceTiles(this._TILE_TYPE_GROUND, passageCoords);
+  }
+
+  _addRoom() {
+    const { roomsCoords } = this.state.map.rooms;
+
+    const roomCoords = this._calcRoomCoords();
+
+    roomsCoords.push(roomCoords);
+
+    this._replaceTiles(this._TILE_TYPE_GROUND, roomCoords);
+  }
+
+  _calcRoomCoords() {
+    const { minSize, maxSize } = this.state.map.rooms;
     const { width, height } = this.state.map;
 
     const roomWidth = this._getRandomInt(minSize, maxSize);
     const roomHeight = this._getRandomInt(minSize, maxSize);
 
-    const leftCoordX = this._getRandomInt(0, width - 1);
-    const leftCoordY = this._getRandomInt(0, height - 1);
+    const leftCornerX = this._getRandomInt(0, width - 1 - roomWidth);
+    const leftCornerY = this._getRandomInt(0, height - 1 - roomHeight);
 
-    const rightCoordX = this._adjustGroundRightCornerCoord(
-      leftCoordX + roomWidth,
-      width
-    );
-    const rightCoordY = this._adjustGroundRightCornerCoord(
-      leftCoordY + roomHeight,
-      height
-    );
+    const roomCoords = [
+      leftCornerX,
+      leftCornerY,
+      leftCornerX + roomWidth,
+      leftCornerY + roomHeight,
+    ];
 
-    return [leftCoordX, leftCoordY, rightCoordX, rightCoordY];
-  }
-
-  _calcGroundCoordsForPassages(size) {
-    const coordsX = this._calcGroundCoordsForPassageX(size);
-    const coordsY = this._calcGroundCoordsForPassageY(size);
-
-    return [coordsX, coordsY];
-  }
-
-  _calcGroundCoordsForPassageX(size) {
-    const { width, height } = this.state.map;
-
-    const leftCoordX = 0;
-    const leftCoordY = this._getRandomInt(0, height - 1);
-
-    const rightCoordX = width - 1;
-    const rightCoordY = this._adjustGroundRightCornerCoord(
-      leftCoordY + size,
-      height
-    );
-
-    return [leftCoordX, leftCoordY, rightCoordX, rightCoordY];
-  }
-
-  _calcGroundCoordsForPassageY(size) {
-    const { width, height } = this.state.map;
-
-    const leftCoordX = this._getRandomInt(0, width - 1);
-    const leftCoordY = 0;
-
-    const rightCoordX = this._adjustGroundRightCornerCoord(
-      leftCoordX + size,
-      width
-    );
-    const rightCoordY = height - 1;
-
-    return [leftCoordX, leftCoordY, rightCoordX, rightCoordY];
-  }
-
-  _adjustGroundRightCornerCoord(rightCornerCoord, mapSize) {
-    return rightCornerCoord >= mapSize ? mapSize - 1 : rightCornerCoord;
+    return roomCoords;
   }
 
   _getRandomInt(min, max) {
@@ -176,13 +114,12 @@ class Model {
 
   _replaceTiles(type, coords) {
     const { tiles } = this.state.map;
+    const [leftX, leftY, rightX, rightY] = coords;
 
-    for (const [leftX, leftY, rightX, rightY] of coords) {
-      for (let j = leftY; j <= rightY; j++) {
-        for (let i = leftX; i <= rightX; i++) {
-          const tile = tiles.find(tile => tile.x === i && tile.y === j);
-          tile.type = type;
-        }
+    for (let j = leftY; j <= rightY; j++) {
+      for (let i = leftX; i <= rightX; i++) {
+        const tile = tiles.find(tile => tile.x === i && tile.y === j);
+        tile.type = type;
       }
     }
   }
