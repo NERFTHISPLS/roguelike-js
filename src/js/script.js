@@ -11,6 +11,9 @@ const ENEMIES_MAX_HP = 100;
 const PLAYER_INITIAL_ATTACK_POWER = 30;
 const ENEMIES_INITIAL_ATTACK_POWER = 10;
 
+HEALING_POTION_HEAL_AMOUNT = 20;
+SWORDS_ATTACK_INCREASING_AMOUNT = 20;
+
 const DIRECTIONS_TO_MOVE = ['w', 'a', 's', 'd'];
 
 class Model {
@@ -44,6 +47,7 @@ class Model {
       units: {
         player: {
           hp: PLAYER_MAX_HP,
+          maxHp: PLAYER_MAX_HP,
           attackPower: PLAYER_INITIAL_ATTACK_POWER,
           x: 0,
           y: 0,
@@ -53,6 +57,7 @@ class Model {
           // will be represented as an array of objects:
           // {
           //  hp: ENEMIES_MAX_HP,
+          //  maxHp: ENEMIES_MAX_HP,
           //  attackPower: ENEMIES_INITIAL_ATTACK_POWER,
           //  x: Number,
           //  y: Number
@@ -206,6 +211,17 @@ class Model {
   _moveUnitTo(unit, x, y) {
     if (!this._unitCanMoveTo(x, y)) return;
 
+    const { tiles } = this.state.map;
+    const tileToStep = tiles.find(tile => tile.x === x && tile.y === y);
+
+    if (tileToStep.type === TILE_TYPE_HP) {
+      this._handleHealthRecovery(unit);
+    }
+
+    if (tileToStep.type === TILE_TYPE_SWORD) {
+      this._handleAttackIncreasing(unit);
+    }
+
     const { units } = this.state.map;
 
     this._replaceTiles(TILE_TYPE_GROUND, [unit.x, unit.y, unit.x, unit.y]);
@@ -216,6 +232,14 @@ class Model {
     const unitType = unit === units.player ? TILE_TYPE_PLAYER : TILE_TYPE_ENEMY;
 
     this._replaceTiles(unitType, [unit.x, unit.y, unit.x, unit.y]);
+  }
+
+  _handleHealthRecovery(unit) {
+    unit.hp = Math.min(unit.hp + HEALING_POTION_HEAL_AMOUNT, unit.maxHp);
+  }
+
+  _handleAttackIncreasing(unit) {
+    unit.attackPower += SWORDS_ATTACK_INCREASING_AMOUNT;
   }
 
   _unitCanMoveTo(x, y) {
@@ -262,6 +286,7 @@ class Model {
 
     const enemy = {
       hp: ENEMIES_MAX_HP,
+      maxHp: ENEMIES_MAX_HP,
       attackPower: ENEMIES_INITIAL_ATTACK_POWER,
       x,
       y,
@@ -471,10 +496,7 @@ class MapView extends View {
 
     const unit = this._getUnitStateFromTile(tile);
 
-    const unitMaxHp =
-      tile.type === TILE_TYPE_PLAYER ? PLAYER_MAX_HP : ENEMIES_MAX_HP;
-
-    const healthPercentage = (unit.hp / unitMaxHp) * 100;
+    const healthPercentage = (unit.hp / unit.maxHp) * 100;
 
     return /* html */ `
       <div class="health" style="width: ${healthPercentage}%"></div>
