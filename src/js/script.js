@@ -15,6 +15,8 @@ const DIRECTIONS_TO_MOVE = ['w', 'a', 's', 'd'];
 
 class Model {
   state = {
+    isGameOn: true,
+    isGameOver: false,
     map: {
       width: 40,
       height: 24,
@@ -490,9 +492,27 @@ class MapView extends View {
   }
 }
 
+class GameEndView extends View {
+  _parentElement = document.querySelector('.field-box');
+
+  _generateMarkup() {
+    const { isGameOver } = this._data;
+
+    const markup = /* html */ `
+      <div class="game-end-popup">
+        <h2>${isGameOver ? 'Вы проиграли!' : 'Вы победили!'}</h2>
+        <button>Начать сначала?</button>
+      </div>
+    `;
+
+    return markup;
+  }
+}
+
 class Controller {
   _model = new Model();
   _mapView = new MapView();
+  _gameEndView = new GameEndView();
 
   _state = this._model.state;
 
