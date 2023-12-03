@@ -31,6 +31,12 @@ class Model {
           number: 10,
         },
       },
+      player: {
+        hp: 100,
+        attackPower: 30,
+        x: 0,
+        y: 0,
+      },
     },
   };
 
@@ -63,14 +69,32 @@ class Model {
   }
 
   addItems() {
-    const { tiles } = this.state.map;
-    const groundTiles = tiles.filter(
-      tile => tile.type === this._TILE_TYPE_GROUND
-    );
+    const groundTiles = this._getGroundTiles();
 
     this._addSwords(groundTiles);
     this._addHealingPotions(groundTiles);
   }
+
+  addUnits() {
+    this._addPlayer();
+    this._addEnemies();
+  }
+
+  _addPlayer() {
+    const { player } = this.state.map;
+
+    const groundTiles = this._getGroundTiles();
+    const randomGroundTile = this._getRandomTile(groundTiles);
+
+    const { x, y } = randomGroundTile;
+
+    this._replaceTiles(this._TILE_TYPE_PLAYER, [x, y, x, y]);
+
+    player.x = x;
+    player.y = y;
+  }
+
+  _addEnemies() {}
 
   _addSwords(groundTiles) {
     const { swords } = this.state.map.items;
@@ -161,6 +185,16 @@ class Model {
     return randomTile;
   }
 
+  _getGroundTiles() {
+    const { tiles } = this.state.map;
+
+    const groundTiles = tiles.filter(
+      tile => tile.type === this._TILE_TYPE_GROUND
+    );
+
+    return groundTiles;
+  }
+
   _replaceTiles(type, coords) {
     const { tiles } = this.state.map;
     const [leftX, leftY, rightX, rightY] = coords;
@@ -243,6 +277,7 @@ class Controller {
     this._model.addRooms();
     this._model.addPassages();
     this._model.addItems();
+    this._model.addUnits();
     this._mapView.addHandlerRender(this._controlMap.bind(this));
   }
 
