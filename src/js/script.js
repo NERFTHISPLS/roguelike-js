@@ -102,6 +102,67 @@ class Model {
     this._addEnemies(groundTiles);
   }
 
+  movePlayer(direction) {
+    const { x, y } = this.state.map.units.player;
+
+    switch (direction) {
+      case 'w':
+        this._movePlayerTo(x, y - 1);
+        break;
+      case 'a':
+        this._movePlayerTo(x - 1, y);
+        break;
+      case 's':
+        this._movePlayerTo(x, y + 1);
+        break;
+      case 'd':
+        this._movePlayerTo(x + 1, y);
+        break;
+      default:
+        break;
+    }
+  }
+
+  _movePlayerTo(x, y) {
+    if (!this._playerCanMoveTo(x, y)) return;
+
+    const { player } = this.state.map.units;
+
+    this._replaceTiles(TILE_TYPE_GROUND, [
+      player.x,
+      player.y,
+      player.x,
+      player.y,
+    ]);
+
+    player.x = x;
+    player.y = y;
+
+    this._replaceTiles(TILE_TYPE_PLAYER, [
+      player.x,
+      player.y,
+      player.x,
+      player.y,
+    ]);
+  }
+
+  _playerCanMoveTo(x, y) {
+    const { width, height, tiles } = this.state.map;
+
+    if (x < 0 || x >= width || y < 0 || y >= height) return false;
+
+    const tileToStep = tiles.find(tile => tile.x === x && tile.y === y);
+
+    if (
+      tileToStep.type !== TILE_TYPE_GROUND &&
+      tileToStep.type !== TILE_TYPE_HP &&
+      tileToStep.type !== TILE_TYPE_SWORD
+    )
+      return false;
+
+    return true;
+  }
+
   _addPlayer(groundTile) {
     const { player } = this.state.map.units;
     const { x, y } = groundTile;
@@ -257,6 +318,21 @@ class View {
     this._insert(markup);
   }
 
+  update(data) {
+    this._data = data;
+
+    const { tiles } = this._data;
+
+    tiles.forEach(tile => {
+      const element = document.querySelector(
+        `[data-x="${tile.x}"][data-y="${tile.y}"]`
+      );
+
+      element.className = tile.type;
+      element.innerHTML = this._generateHealthBarMarkup(tile);
+    });
+  }
+
   _insert(markup) {
     this._clear();
     this._parentElement.insertAdjacentHTML('beforeend', markup);
@@ -272,6 +348,10 @@ class MapView extends View {
 
   addHandlerRender(handler) {
     window.addEventListener('load', handler);
+  }
+
+  addHandlerMovePlayer(handler) {
+    document.addEventListener('keydown', event => handler(event));
   }
 
   _generateMarkup() {
@@ -353,10 +433,16 @@ class Controller {
     this._model.addItems();
     this._model.addUnits();
     this._mapView.addHandlerRender(this._controlMap.bind(this));
+    this._mapView.addHandlerMovePlayer(this._controlMovePlayer.bind(this));
   }
 
   _controlMap() {
     this._mapView.render(this._state.map);
+  }
+
+  _controlMovePlayer(event) {
+    this._model.movePlayer(event.key);
+    this._mapView.update(this._state.map);
   }
 }
 
