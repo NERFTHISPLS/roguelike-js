@@ -535,10 +535,22 @@ class GameEndView extends View {
     this._parentElement.classList.remove('hidden');
 
     const markup = /* html */ `
-      <div class="game-end-popup">
-        <h2>${isGameOver ? 'Вы проиграли!' : 'Вы победили!'}</h2>
-        <button onclick="window.location.reload()">Начать сначала?</button>
-      </div>
+      <h2>${isGameOver ? 'Вы проиграли!' : 'Вы победили!'}</h2>
+      <button onclick="window.location.reload()">Начать сначала?</button>
+    `;
+
+    return markup;
+  }
+}
+
+class GameInformationView extends View {
+  _parentElement = document.querySelector('.information-box');
+
+  _generateMarkup() {
+    const { attackPower } = this._data;
+
+    const markup = /* html */ `
+      <h2>Сила атаки: ${attackPower}</h2>
     `;
 
     return markup;
@@ -549,6 +561,7 @@ class Controller {
   _model = new Model();
   _mapView = new MapView();
   _gameEndView = new GameEndView();
+  _gameInformation = new GameInformationView();
 
   _state = this._model.state;
 
@@ -567,6 +580,7 @@ class Controller {
     this._mapView.addHandlerAttackEnemies(
       this._controlAttackEnemies.bind(this)
     );
+    this._gameInformation.render(this._state.map.units.player);
   }
 
   _controlMap() {
@@ -576,6 +590,7 @@ class Controller {
   _controlMovePlayer(direction) {
     this._model.movePlayer(direction);
     this._mapView.update(this._state.map);
+    this._gameInformation.render(this._state.map.units.player);
     !this._state.isGameOn && this._gameEndView.render(this._state);
   }
 
