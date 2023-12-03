@@ -11,6 +11,8 @@ const ENEMIES_MAX_HP = 100;
 const PLAYER_INITIAL_ATTACK_POWER = 30;
 const ENEMIES_INITIAL_ATTACK_POWER = 10;
 
+const DIRECTIONS_TO_MOVE = ['w', 'a', 's', 'd'];
+
 class Model {
   state = {
     map: {
@@ -103,50 +105,58 @@ class Model {
   }
 
   movePlayer(direction) {
-    const { x, y } = this.state.map.units.player;
+    const { player } = this.state.map.units;
+
+    this._moveUnit(player, direction);
+    this._moveEnemies();
+  }
+
+  _moveEnemies() {
+    const { enemies } = this.state.map.units;
+
+    enemies.enemiesParameters.forEach(enemy => {
+      const randomDirection = this._getRandomDirection();
+      this._moveUnit(enemy, randomDirection);
+    });
+  }
+
+  _moveUnit(unit, direction) {
+    const { x, y } = unit;
 
     switch (direction) {
       case 'w':
-        this._movePlayerTo(x, y - 1);
+        this._moveUnitTo(unit, x, y - 1);
         break;
       case 'a':
-        this._movePlayerTo(x - 1, y);
+        this._moveUnitTo(unit, x - 1, y);
         break;
       case 's':
-        this._movePlayerTo(x, y + 1);
+        this._moveUnitTo(unit, x, y + 1);
         break;
       case 'd':
-        this._movePlayerTo(x + 1, y);
+        this._moveUnitTo(unit, x + 1, y);
         break;
       default:
         break;
     }
   }
 
-  _movePlayerTo(x, y) {
-    if (!this._playerCanMoveTo(x, y)) return;
+  _moveUnitTo(unit, x, y) {
+    if (!this._unitCanMoveTo(x, y)) return;
 
-    const { player } = this.state.map.units;
+    const { units } = this.state.map;
 
-    this._replaceTiles(TILE_TYPE_GROUND, [
-      player.x,
-      player.y,
-      player.x,
-      player.y,
-    ]);
+    this._replaceTiles(TILE_TYPE_GROUND, [unit.x, unit.y, unit.x, unit.y]);
 
-    player.x = x;
-    player.y = y;
+    unit.x = x;
+    unit.y = y;
 
-    this._replaceTiles(TILE_TYPE_PLAYER, [
-      player.x,
-      player.y,
-      player.x,
-      player.y,
-    ]);
+    const unitType = unit === units.player ? TILE_TYPE_PLAYER : TILE_TYPE_ENEMY;
+
+    this._replaceTiles(unitType, [unit.x, unit.y, unit.x, unit.y]);
   }
 
-  _playerCanMoveTo(x, y) {
+  _unitCanMoveTo(x, y) {
     const { width, height, tiles } = this.state.map;
 
     if (x < 0 || x >= width || y < 0 || y >= height) return false;
@@ -293,6 +303,12 @@ class Model {
     const groundTiles = tiles.filter(tile => tile.type === TILE_TYPE_GROUND);
 
     return groundTiles;
+  }
+
+  _getRandomDirection() {
+    const randomIndex = this._getRandomInt(0, DIRECTIONS_TO_MOVE.length - 1);
+
+    return DIRECTIONS_TO_MOVE[randomIndex];
   }
 
   _replaceTiles(type, coords) {
