@@ -119,6 +119,10 @@ class Model {
   }
 
   attackEnemies() {
+    const { isGameOn } = this.state;
+
+    if (!isGameOn) return;
+
     const { player, enemies } = this.state.map.units;
 
     for (const enemy of enemies.enemiesParameters) {
@@ -190,6 +194,10 @@ class Model {
   }
 
   _moveUnit(unit, direction) {
+    const { isGameOn } = this.state;
+
+    if (!isGameOn) return;
+
     const { x, y } = unit;
 
     switch (direction) {
