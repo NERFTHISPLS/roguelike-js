@@ -11,6 +11,8 @@ const ENEMIES_MAX_HP = 100;
 const PLAYER_INITIAL_ATTACK_POWER = 30;
 const ENEMIES_INITIAL_ATTACK_POWER = 10;
 
+const DIRECTIONS_TO_MOVE = ['w', 'a', 's', 'd'];
+
 class Model {
   state = {
     map: {
@@ -106,6 +108,16 @@ class Model {
     const { player } = this.state.map.units;
 
     this._moveUnit(player, direction);
+    this._moveEnemies();
+  }
+
+  _moveEnemies() {
+    const { enemies } = this.state.map.units;
+
+    enemies.enemiesParameters.forEach(enemy => {
+      const randomDirection = this._getRandomDirection();
+      this._moveUnit(enemy, randomDirection);
+    });
   }
 
   _moveUnit(unit, direction) {
@@ -291,6 +303,12 @@ class Model {
     const groundTiles = tiles.filter(tile => tile.type === TILE_TYPE_GROUND);
 
     return groundTiles;
+  }
+
+  _getRandomDirection() {
+    const randomIndex = this._getRandomInt(0, DIRECTIONS_TO_MOVE.length - 1);
+
+    return DIRECTIONS_TO_MOVE[randomIndex];
   }
 
   _replaceTiles(type, coords) {
