@@ -108,7 +108,7 @@ class Model {
     const { player } = this.state.map.units;
 
     this._moveUnit(player, direction);
-    this._moveEnemies();
+    this._moveEnemiesOrAttackPlayer();
   }
 
   attackEnemies() {
@@ -122,10 +122,23 @@ class Model {
       }
 
       enemy.hp -= player.attackPower;
+
+      this._attackPlayer(enemy);
+
       if (enemy.hp > 0) continue;
 
       this._handleDefeatEnemy(enemy);
     }
+  }
+
+  _attackPlayer(enemy) {
+    const { player } = this.state.map.units;
+
+    player.hp -= enemy.attackPower;
+
+    if (player.hp > 0) return;
+
+    console.log('Player defeated! Game over.');
   }
 
   _handleDefeatEnemy(enemy) {
@@ -144,12 +157,16 @@ class Model {
     );
   }
 
-  _moveEnemies() {
-    const { enemies } = this.state.map.units;
+  _moveEnemiesOrAttackPlayer() {
+    const { player, enemies } = this.state.map.units;
 
     enemies.enemiesParameters.forEach(enemy => {
-      const randomDirection = this._getRandomDirection();
-      this._moveUnit(enemy, randomDirection);
+      if (this._areUnitsAdjacent(player, enemy)) {
+        this._attackPlayer(enemy);
+      } else {
+        const randomDirection = this._getRandomDirection();
+        this._moveUnit(enemy, randomDirection);
+      }
     });
   }
 
