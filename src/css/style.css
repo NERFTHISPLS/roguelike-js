@@ -138,3 +138,7 @@ h1,
   border-radius: 5px;
   cursor: pointer;
 }
+
+.hidden {
+  visibility: hidden;
+}

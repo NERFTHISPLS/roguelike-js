@@ -128,9 +128,21 @@ class Model {
       this._attackPlayer(enemy);
 
       if (enemy.hp > 0) continue;
-
       this._handleDefeatEnemy(enemy);
+
+      if (enemies.enemiesParameters.length !== 0) continue;
+      this._handleWin();
     }
+  }
+
+  _handleWin() {
+    this.state.isGameOn = false;
+    this.state.isGameOver = false;
+  }
+
+  _handleLose() {
+    this.state.isGameOn = false;
+    this.state.isGameOver = true;
   }
 
   _attackPlayer(enemy) {
@@ -140,7 +152,7 @@ class Model {
 
     if (player.hp > 0) return;
 
-    console.log('Player defeated! Game over.');
+    this._handleLose();
   }
 
   _handleDefeatEnemy(enemy) {
@@ -493,15 +505,17 @@ class MapView extends View {
 }
 
 class GameEndView extends View {
-  _parentElement = document.querySelector('.field-box');
+  _parentElement = document.querySelector('.game-end-popup');
 
   _generateMarkup() {
     const { isGameOver } = this._data;
 
+    this._parentElement.classList.remove('hidden');
+
     const markup = /* html */ `
       <div class="game-end-popup">
         <h2>${isGameOver ? 'Вы проиграли!' : 'Вы победили!'}</h2>
-        <button>Начать сначала?</button>
+        <button onclick="window.location.reload()">Начать сначала?</button>
       </div>
     `;
 
@@ -540,11 +554,13 @@ class Controller {
   _controlMovePlayer(direction) {
     this._model.movePlayer(direction);
     this._mapView.update(this._state.map);
+    !this._state.isGameOn && this._gameEndView.render(this._state);
   }
 
   _controlAttackEnemies() {
     this._model.attackEnemies();
     this._mapView.update(this._state.map);
+    !this._state.isGameOn && this._gameEndView.render(this._state);
   }
 }
 
